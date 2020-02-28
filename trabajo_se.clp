@@ -74,7 +74,7 @@
 )
 
 (defrule is-natural_desaster
-  (choose-service ?t)
+  (choose-service ?t ?n ?x ?y)
   (test (eq ?t natural_desaster))
   =>
   (printout t "Is a natural desaster emergency" crlf)
