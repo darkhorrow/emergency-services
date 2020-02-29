@@ -177,22 +177,36 @@
 (defrule policemen-station-service
   (call-policemen ?n ?x ?y ?staff)
   =>
-
   ; calculate nearest station
   (bind ?dist -1)
-  (bind ?minx -1)
-  (bind ?miny -1)
-  ;(bind ?list (assert list-services))
   (do-for-all-facts ((?service Service)) TRUE
     (bind ?locx (nth$ 1 (fact-slot-value ?service location)))
     (bind ?locy (nth$ 2 (fact-slot-value ?service location)))
     (bind ?new_dist (sqrt (+ (* (- ?x ?locx) (- ?x ?locx)) (* (- ?y ?locy) (- ?y ?locy)))) )
-    (if (and (eq ?service:name Policemen) (or (< ?dist 0) (< ?new_dist ?dist)) ) then
+    (if (and (eq ?service:name Policemen) ; filter policemen
+             (or (< ?dist 0) (< ?new_dist ?dist)) ; nearest station
+             (<= ?staff ?service:n_members) ; enough staff?
+        )
+    then
       (bind ?dist ?new_dist)
-      (bind ?minx ?locx)
-      (bind ?miny ?locy)
+      (bind ?sel_serv ?service)
     )
-
   )
-  (printout t "Distancia " ?dist " x = " ?minx " y = " ?miny crlf)
+
+  (bind ?minx (nth$ 1 (fact-slot-value ?sel_serv location)))
+  (bind ?miny (nth$ 2 (fact-slot-value ?sel_serv location)))
+  (bind ?prep_time (fact-slot-value ?sel_serv prep_time))
+  (bind ?movement_speed (fact-slot-value ?sel_serv movement_speed))
+  (bind ?n_members (fact-slot-value ?sel_serv n_members))
+  (retract ?sel_serv)
+  (assert
+    (Service
+      (name Policemen)
+      (location ?minx ?miny)
+      (n_members (- ?n_members ?staff))
+      (movement_speed ?movement_speed)
+      (prep_time ?prep_time)
+    )
+  )
+  (printout t "Policemen station x = " ?minx " y = " ?miny " responded emergency in x = " ?x " y = " ?y crlf)
 )
