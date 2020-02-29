@@ -182,15 +182,17 @@
   (bind ?dist -1)
   (bind ?minx -1)
   (bind ?miny -1)
+  ;(bind ?list (assert list-services))
   (do-for-all-facts ((?service Service)) TRUE
     (bind ?locx (nth$ 1 (fact-slot-value ?service location)))
     (bind ?locy (nth$ 2 (fact-slot-value ?service location)))
     (bind ?new_dist (sqrt (+ (* (- ?x ?locx) (- ?x ?locx)) (* (- ?y ?locy) (- ?y ?locy)))) )
-    (if (or (< ?dist 0) (< ?new_dist ?dist)) then
+    (if (and (eq ?service:name Policemen) (or (< ?dist 0) (< ?new_dist ?dist)) ) then
       (bind ?dist ?new_dist)
       (bind ?minx ?locx)
       (bind ?miny ?locy)
     )
+
   )
-  (printout t ?dist " x = " ?minx " y = " ?miny crlf)
+  (printout t "Distancia " ?dist " x = " ?minx " y = " ?miny crlf)
 )
