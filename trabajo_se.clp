@@ -113,93 +113,93 @@
 )
 
 (defrule emergencySpotted
-  ?e <- (Emergency (type ?type) (location ?loc_X ?loc_Y) (n_affected_people ?n_affected))
+  ?e <- (Emergency (id ?id) (type ?type) (location ?loc_X ?loc_Y) (n_affected_people ?n_affected))
   =>
   (printout t "A emergency appeared!" crlf)
   (assert
-    (choose-service ?type ?n_affected ?loc_X ?loc_Y)
+    (choose-service ?id ?type ?n_affected ?loc_X ?loc_Y)
   )
 )
 
 ; Emergency type handler
 
 (defrule is-thief
-  ?serv <- (choose-service ?type ?n_affected ?x ?y)
+  ?serv <- (choose-service ?id ?type ?n_affected ?x ?y)
   (test (eq ?type thief))
   =>
   (printout t "Is a thief emergency" crlf)
   ; calculate required staff: 1 member/10 people
   (bind ?staff (ceil (/ ?n_affected 10)))
   (assert
-    (call Policemen ?type ?x ?y ?staff)
+    (call Policemen ?id ?x ?y ?staff)
   )
   ; delete choose-service
   (retract ?serv)
 )
 
 (defrule is-natural_desaster
-  ?serv <- (choose-service ?type ?n_affected ?x ?y)
+  ?serv <- (choose-service ?id ?type ?n_affected ?x ?y)
   (test (eq ?type natural_desaster))
   =>
   (printout t "Is a natural desaster emergency" crlf)
   ; calculate required staff: 1 member/10 people
   (bind ?staff (ceil (/ ?n_affected 10)))
   (assert
-    (call Policemen ?type ?x ?y ?staff)
+    (call Policemen ?id ?x ?y ?staff)
   )
   (assert
-    (call Sanitary ?type ?x ?y ?staff)
+    (call Sanitary ?id ?x ?y ?staff)
   )
   (assert
-    (call Firemen ?type ?x ?y ?staff)
+    (call Firemen ?id ?x ?y ?staff)
   )
   ; delete choose-service
   (retract ?serv)
 )
 
 (defrule is-homicide
-  ?serv <- (choose-service ?type ?n_affected ?x ?y)
+  ?serv <- (choose-service ?id ?type ?n_affected ?x ?y)
   (test (eq ?type homicide))
   =>
   (printout t "Is a homicide emergency" crlf)
   ; calculate required staff: 1 member/10 people
   (bind ?staff (ceil (/ ?n_affected 10)))
   (assert
-    (call Policemen ?type ?x ?y ?staff)
+    (call Policemen ?id ?x ?y ?staff)
   )
   (assert
-    (call Sanitary ?type ?x ?y ?staff)
+    (call Sanitary ?id ?x ?y ?staff)
   )
   ; delete choose-service
   (retract ?serv)
 )
 
 (defrule is-pandemic
-  ?serv <- (choose-service ?type ?n_affected ?x ?y)
+  ?serv <- (choose-service ?id ?type ?n_affected ?x ?y)
   (test (eq ?type pandemic))
   =>
   (printout t "Is a pandemic emergency" crlf)
   ; calculate required staff: 1 member/10 people
   (bind ?staff (ceil (/ ?n_affected 10)))
   (assert
-    (call Sanitary ?type ?x ?y ?staff)
+    (call Sanitary ?id ?x ?y ?staff)
   )
   ; delete choose-service
   (retract ?serv)
 )
 
 (defrule is-car-crash
-  ?serv <- (choose-service ?type ?n_affected ?x ?y)
+  ?serv <- (choose-service ?id ?type ?n_affected ?x ?y)
   (test (eq ?type car_crash))
   =>
   (printout t "Is a car crash emergency" crlf)
   ; calculate required staff: 1 member/10 people
   (bind ?staff (ceil (/ ?n_affected 10)))
   (assert
-    (call Policemen ?type ?x ?y ?staff)
+    (call Policemen ?id ?x ?y ?staff)
   )
   (assert
-    (call Firemen ?type ?x ?y ?staff)
+    (call Firemen ?id ?x ?y ?staff)
   )
   ; delete choose-service
   (retract ?serv)
@@ -207,48 +207,70 @@
 
 ; Service calls
 
-(defrule attend-emergency
-  ?call <- (call ?name ?type ?x ?y ?staff)
+;(defrule attend-emergency
+;  ?call <- (call ?name ?type ?x ?y ?staff)
+;  =>
+;  ; calculate quickest
+;  (bind ?min_time -1)
+;  (do-for-all-facts ((?service Service)) TRUE
+;    (bind ?locx (nth$ 1 (fact-slot-value ?service location)))
+;    (bind ?locy (nth$ 2 (fact-slot-value ?service location)))
+;    (bind ?dist (sqrt (+ (* (- ?x ?locx) (- ?x ?locx)) (* (- ?y ?locy) (- ?y ?locy)))) )
+;    (bind ?mov_time (/ ?dist ?service:movement_speed))
+;    (bind ?new_time (+ ?mov_time ?service:prep_time))
+;    (if (and (eq ?service:name ?name) ; filter service type
+;             (or (< ?min_time 0) (< ?new_time ?min_time)) ; quickest station
+;             (<= ?staff ?service:n_members) ; enough staff?
+;        )
+;    then
+;      (bind ?min_time ?new_time)
+;      (bind ?sel_serv ?service)
+;    )
+;  )
+;  ; update service
+;  (bind ?minx (nth$ 1 (fact-slot-value ?sel_serv location)))
+;  (bind ?miny (nth$ 2 (fact-slot-value ?sel_serv location)))
+;  (bind ?prep_time (fact-slot-value ?sel_serv prep_time))
+;  (bind ?movement_speed (fact-slot-value ?sel_serv movement_speed))
+;  (bind ?n_members (fact-slot-value ?sel_serv n_members))
+;  (bind ?id (fact-slot-value ?sel_serv id))
+;  (retract ?sel_serv)
+;  (assert
+;    (Service
+;      (id ?id)
+;      (name ?name)
+;      (location ?minx ?miny)
+;      (n_members (- ?n_members ?staff))
+;      (movement_speed ?movement_speed)
+;      (prep_time ?prep_time)
+;    )
+;  )
+;  (printout t ?staff " members from " ?name " station (" ?minx ", " ?miny ") responded emergency: " ?type " (" ?x ", " ?y ") [time = " (truncate ?min_time 4) "h ]"crlf)
+;  ; delete call
+;  (retract ?call)
+;)
+
+
+(defrule select-station
+  ?call <- (call ?name ?emergency_id ?x ?y ?staff)
   =>
-  ; calculate quickest
-  (bind ?min_time -1)
   (do-for-all-facts ((?service Service)) TRUE
+    (bind ?id ?service:id)
     (bind ?locx (nth$ 1 (fact-slot-value ?service location)))
     (bind ?locy (nth$ 2 (fact-slot-value ?service location)))
     (bind ?dist (sqrt (+ (* (- ?x ?locx) (- ?x ?locx)) (* (- ?y ?locy) (- ?y ?locy)))) )
     (bind ?mov_time (/ ?dist ?service:movement_speed))
-    (bind ?new_time (+ ?mov_time ?service:prep_time))
-    (if (and (eq ?service:name ?name) ; filter service type
-             (or (< ?min_time 0) (< ?new_time ?min_time)) ; quickest station
-             (<= ?staff ?service:n_members) ; enough staff?
-        )
-    then
-      (bind ?min_time ?new_time)
-      (bind ?sel_serv ?service)
-    )
+    (bind ?time (+ ?mov_time ?service:prep_time))
+    (assert (distance-station ?emergency_id ?service:id ?time))
   )
-  ; update service
-  (bind ?minx (nth$ 1 (fact-slot-value ?sel_serv location)))
-  (bind ?miny (nth$ 2 (fact-slot-value ?sel_serv location)))
-  (bind ?prep_time (fact-slot-value ?sel_serv prep_time))
-  (bind ?movement_speed (fact-slot-value ?sel_serv movement_speed))
-  (bind ?n_members (fact-slot-value ?sel_serv n_members))
-  (bind ?id (fact-slot-value ?sel_serv id))
-  (retract ?sel_serv)
-  (assert
-    (Service
-      (id ?id)
-      (name ?name)
-      (location ?minx ?miny)
-      (n_members (- ?n_members ?staff))
-      (movement_speed ?movement_speed)
-      (prep_time ?prep_time)
-    )
-  )
-  (printout t ?staff " members from " ?name " station (" ?minx ", " ?miny ") responded emergency: " ?type " (" ?x ", " ?y ") [time = " (truncate ?min_time 4) "h ]"crlf)
-  ; delete call
   (retract ?call)
 )
+
+;(defrule attend-emergency
+;
+;  =>
+;
+;)
 
 (defrule finish-emergency-service
   ?end_service <- (end-service ?id ?staff)
