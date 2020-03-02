@@ -18,6 +18,7 @@
 
 ; templates
 (deftemplate Service
+  (slot id (type INTEGER))
   (slot name (allowed-values Sanitary Firemen Policemen))
   (multislot location (type FLOAT)); km
   (slot n_members (type INTEGER))
@@ -26,6 +27,7 @@
 )
 
 (deftemplate Emergency
+  (slot id (type INTEGER))
   (slot type (allowed-values natural_desaster thief homicide pandemic car_crash))
   (multislot location (type FLOAT)) ; km
   (slot n_affected_people (type INTEGER))
@@ -34,6 +36,7 @@
 (deffacts services_facts
 
   (Service
+    (id 1)
     (name Sanitary)
     (location  2.0 10.0)
     (n_members 100)
@@ -42,6 +45,7 @@
   )
 
   (Service
+    (id 2)
     (name Sanitary)
     (location  4.0 6.0)
     (n_members 100)
@@ -50,6 +54,7 @@
   )
 
   (Service
+    (id 3)
     (name Policemen)
     (location 8.0 1.0)
     (n_members 100)
@@ -58,6 +63,7 @@
   )
 
   (Service
+    (id 4)
     (name Policemen)
     (location 10.0 10.0)
     (n_members 100)
@@ -66,6 +72,7 @@
   )
 
   (Service
+    (id 5)
     (name Firemen)
     (location 4.0 2.0)
     (n_members 100)
@@ -74,6 +81,7 @@
   )
 
   (Service
+    (id 6)
     (name Firemen)
     (location 10.0 4.0)
     (n_members 100)
@@ -84,12 +92,14 @@
   ; Emergecies
 
   (Emergency
+    (id 7)
     (type thief)
     (location 10.0 2.0)
     (n_affected_people 100)
   )
 
   (Emergency
+    (id 8)
     (type natural_desaster)
     (location 1.0 0.0)
     (n_affected_people 5)
@@ -223,9 +233,11 @@
   (bind ?prep_time (fact-slot-value ?sel_serv prep_time))
   (bind ?movement_speed (fact-slot-value ?sel_serv movement_speed))
   (bind ?n_members (fact-slot-value ?sel_serv n_members))
+  (bind ?id (fact-slot-value ?sel_serv id))
   (retract ?sel_serv)
   (assert
     (Service
+      (id ?id)
       (name ?name)
       (location ?minx ?miny)
       (n_members (- ?n_members ?staff))
@@ -238,18 +250,15 @@
   (retract ?call)
 )
 
-
-
 (defrule finish-emergency-service
-  ?end_service <- (end-service ?name ?x ?y ?staff)
-  ?serv <- (Service (name ?serv_name) (location ?loc_X ?loc_Y) (n_members ?members) (movement_speed ?speed) (prep_time ?time))
-  (test (eq ?name ?serv_name))
-  (test (eq ?loc_X (float ?x)))
-  (test (eq ?loc_Y (float ?y)))
+  ?end_service <- (end-service ?id ?staff)
+  ?serv <- (Service (id ?id_serv) (name ?serv_name) (location ?loc_X ?loc_Y) (n_members ?members) (movement_speed ?speed) (prep_time ?time))
+  (test (eq ?id ?id_serv))
   =>
   (retract ?serv)
   (assert
     (Service
+      (id ?id)
       (name ?serv_name)
       (location ?loc_X ?loc_Y)
       (n_members (+ ?members ?staff))
