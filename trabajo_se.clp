@@ -58,7 +58,7 @@
     (name Policemen)
     (location 8.0 1.0)
     (n_members 100)
-    (movement_speed 200000.0)
+    (movement_speed 200.0)
     (prep_time 0.2)
   )
 
@@ -93,16 +93,16 @@
 
   (Emergency
     (id 7)
-    (type thief)
+    (type natural_desaster)
     (location 10.0 2.0)
-    (n_affected_people 100)
+    (n_affected_people 5)
   )
 
   (Emergency
     (id 8)
-    (type natural_desaster)
+    (type pandemic)
     (location 1.0 0.0)
-    (n_affected_people 5)
+    (n_affected_people 2000)
   )
 )
 
@@ -121,18 +121,36 @@
   )
 )
 
-; Emergency type handler
+; Contar el número de miembros total de un servicio
+(deffunction count_members(?service_name)
+  (bind ?count 0)
+  (do-for-all-facts ((?service Service)) TRUE
+    (if (eq ?service:name ?service_name)
+     then
+      (bind ?count (+ ?count ?service:n_members))
+    )
+  )
+  (return ?count)
+)
 
+; Emergency type handler
 (defrule is-thief
   ?serv <- (choose-service ?id ?type ?n_affected ?x ?y)
   (test (eq ?type thief))
   =>
   (printout t "Is a thief emergency" crlf)
+
   ; calculate required staff: 1 member/10 people
-  (bind ?staff (ceil (/ ?n_affected 10)))
-  (assert
-    (call Policemen ?id ?x ?y ?staff)
+  (bind ?staff_policemen (ceil (/ ?n_affected 10)))
+
+  (bind ?num_policemen (count_members Policemen))
+  (if (>= ?num_policemen ?staff_policemen)
+   then
+    (assert (call Policemen ?id ?x ?y ?staff_policemen))
+   else
+    (printout t "ERROR: there are not enough policemen to attend to the emergency " ?id " : " (- ?num_policemen ?staff_policemen) crlf)
   )
+
   ; delete choose-service
   (retract ?serv)
 )
@@ -143,16 +161,33 @@
   =>
   (printout t "Is a natural desaster emergency" crlf)
   ; calculate required staff: 1 member/10 people
-  (bind ?staff (ceil (/ ?n_affected 10)))
-  (assert
-    (call Policemen ?id ?x ?y ?staff)
+  (bind ?staff_policemen (ceil (/ ?n_affected 10)))
+  (bind ?staff_sanitary (ceil (/ ?n_affected 10)))
+  (bind ?staff_firemen (ceil (/ ?n_affected 10)))
+
+  (bind ?num_policemen (count_members Policemen))
+  (bind ?num_sanitary (count_members Sanitary))
+  (bind ?num_firemen (count_members Firemen))
+
+  (if (>= ?num_policemen ?staff_policemen)
+   then
+    (assert (call Policemen ?id ?x ?y ?staff_policemen))
+   else
+    (printout t "ERROR: there are not enough policemen to attend to the emergency " ?id " : " (- ?num_policemen ?staff_policemen) crlf)
   )
-  (assert
-    (call Sanitary ?id ?x ?y ?staff)
+  (if (>= ?num_sanitary ?staff_sanitary)
+   then
+    (assert (call Sanitary ?id ?x ?y ?staff_sanitary))
+   else
+    (printout t "ERROR: there are not enough sanitary to attend to the emergency " ?id " : " (- ?num_sanitary ?staff_sanitary) crlf)
   )
-  (assert
-    (call Firemen ?id ?x ?y ?staff)
+  (if (>= ?num_firemen ?staff_firemen)
+   then
+    (assert (call Firemen ?id ?x ?y ?staff_firemen))
+   else
+    (printout t "ERROR: there are not enough firemen to attend to the emergency " ?id " : " (- ?num_firemen ?staff_firemen) crlf)
   )
+
   ; delete choose-service
   (retract ?serv)
 )
@@ -163,12 +198,23 @@
   =>
   (printout t "Is a homicide emergency" crlf)
   ; calculate required staff: 1 member/10 people
-  (bind ?staff (ceil (/ ?n_affected 10)))
-  (assert
-    (call Policemen ?id ?x ?y ?staff)
+  (bind ?staff_policemen (ceil (/ ?n_affected 10)))
+  (bind ?staff_sanitary (ceil (/ ?n_affected 10)))
+
+  (bind ?num_policemen (count_members Policemen))
+  (bind ?num_sanitary (count_members Sanitary))
+
+  (if (>= ?num_policemen ?staff_policemen)
+   then
+    (assert (call Policemen ?id ?x ?y ?staff_policemen))
+   else
+    (printout t "ERROR: there are not enough policemen to attend to the emergency " ?id " : " (- ?num_policemen ?staff_policemen) crlf)
   )
-  (assert
-    (call Sanitary ?id ?x ?y ?staff)
+  (if (>= ?num_sanitary ?staff_sanitary)
+   then
+    (assert (call Sanitary ?id ?x ?y ?staff_sanitary))
+   else
+    (printout t "ERROR: there are not enough sanitary to attend to the emergency " ?id  " : " (- ?num_sanitary ?staff_sanitary) crlf)
   )
   ; delete choose-service
   (retract ?serv)
@@ -180,9 +226,15 @@
   =>
   (printout t "Is a pandemic emergency" crlf)
   ; calculate required staff: 1 member/10 people
-  (bind ?staff (ceil (/ ?n_affected 10)))
-  (assert
-    (call Sanitary ?id ?x ?y ?staff)
+  (bind ?staff_sanitary (ceil (/ ?n_affected 10)))
+
+  (bind ?num_sanitary (count_members Sanitary))
+
+  (if (>= ?num_sanitary ?staff_sanitary)
+   then
+    (assert (call Sanitary ?id ?x ?y ?staff_sanitary))
+   else
+    (printout t "ERROR: there are not enough sanitary to attend to the emergency " ?id " : " (- ?num_sanitary ?staff_sanitary) crlf)
   )
   ; delete choose-service
   (retract ?serv)
@@ -194,12 +246,23 @@
   =>
   (printout t "Is a car crash emergency" crlf)
   ; calculate required staff: 1 member/10 people
-  (bind ?staff (ceil (/ ?n_affected 10)))
-  (assert
-    (call Policemen ?id ?x ?y ?staff)
+  (bind ?staff_policemen (ceil (/ ?n_affected 10)))
+  (bind ?staff_firemen (ceil (/ ?n_affected 10)))
+
+  (bind ?num_policemen (count_members Policemen))
+  (bind ?num_firemen (count_members Firemen))
+
+  (if (>= ?num_policemen ?staff_policemen)
+   then
+    (assert (call Policemen ?id ?x ?y ?staff_policemen))
+   else
+    (printout t "ERROR: there are not enough policemen to attend to the emergency " ?id " : " (- ?num_policemen ?staff_policemen) crlf)
   )
-  (assert
-    (call Firemen ?id ?x ?y ?staff)
+  (if (>= ?num_firemen ?staff_firemen)
+   then
+    (assert (call Firemen ?id ?x ?y ?staff_firemen))
+   else
+    (printout t "ERROR: there are not enough firemen to attend to the emergency " ?id " : " (- ?num_firemen ?staff_firemen)  crlf)
   )
   ; delete choose-service
   (retract ?serv)
@@ -251,7 +314,7 @@
 ;)
 
 
-(defrule select-station
+(defrule calculate-station-distance
   ?call <- (call ?name ?emergency_id ?x ?y ?staff)
   =>
   (do-for-all-facts ((?service Service)) TRUE
@@ -282,7 +345,7 @@
   (retract ?ds)
   ; eliminar staff del servicio
   (bind ?resto (- ?staff ?n_members)); numero de miembros restantes que hacen falta
-  (bind ?new_n_members 0)
+  (bind ?new_n_members 0); numero de miembros que quedaran en el servicio
   (if (>= ?resto 0)
    then
       (bind ?new_n_members 0)
@@ -308,7 +371,13 @@
     )
   )
 
-  (printout t "Emergency [" ?emergency_id "] " ?type " station [" ?service_id "] time " ?time " -- " ?staff crlf)
+  ;(printout t "La emergencia " ?emergency_id "  " ?type " station [" ?service_id "] time " ?time " -- " ?staff crlf)
+  (bind ?miembros (- ?n_members ?new_n_members))
+  (if (> ?miembros 0)
+    then
+    ; 10 members of station 10 have attended the emergency 3
+    (printout t ?miembros " members of station " ?service_id " have attended the emergency " ?emergency_id crlf)
+  )
 )
 
 (defrule finish-emergency-service
