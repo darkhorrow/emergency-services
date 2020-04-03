@@ -46,7 +46,8 @@
 ;   -1 -> not enough members
 
 
-(deffacts services_facts
+
+;(deffacts services_facts
 
   ;(Service
   ;  (id 1)
@@ -104,12 +105,12 @@
 
   ; Emergecies
 
-  (Emergency
-    (id 7)
-    (type natural_desaster)
-    (location 10.0 2.0)
-    (n_affected_people 5)
-  )
+  ;(Emergency
+  ;  (id 7)
+  ;  (type natural_desaster)
+  ;  (location 10.0 2.0)
+  ;  (n_affected_people 5)
+  ;)
 
   ;(Emergency
   ;  (id 8)
@@ -117,7 +118,8 @@
   ;  (location 1.0 0.0)
   ;  (n_affected_people 2000)
   ;)
-)
+;)
+
 
 (defrule notifyExistenceService
   (Service (name ?name) (location ?loc_X ?loc_Y))
